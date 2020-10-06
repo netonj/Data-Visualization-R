@@ -1,0 +1,1177 @@
+---
+title: "Neton-Yoo-TA"
+author: "Jack Neton, Kyle Yoo"
+date: "5/1/2020"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+---
+
+```{r echo = FALSE}
+# Course: Communicating Data
+# Purpose: Practice data wrangling and visualisation for real-world applications
+# Date: May 13, 2020
+# Author: Jack Neton, Kyle Yoo
+
+```
+
+
+```{r echo = FALSE}
+# Clear environment of variables and functions
+rm(list = ls(all = TRUE)) 
+
+# Clear environmet of packages
+if(is.null(sessionInfo()$otherPkgs) == FALSE)lapply(paste("package:", names(sessionInfo()$otherPkgs), sep=""), detach, character.only = TRUE, unload = TRUE)
+
+```
+
+
+# Load Packages
+
+```{r message = FALSE}
+# The tidyverse package contains ggplot2, dplyr, and several other packages we will use
+library(tidyverse)
+
+# The gridExtra package contains grid.arrange function used to combine plots in the same window
+library(gridExtra)
+
+# The janitor package contains tidyverse functions for cross-tables
+library(janitor)
+
+# The knitr package contains some table formating functions
+library(knitr)
+
+# The GGally package contains a custom correlation plot we will use
+library(GGally)
+
+#The lubridate package contains functions to convert dates
+library(lubridate)
+
+#The colorspace package contains color pallates for graph design
+library(colorspace)
+
+#The ggthemes package contains themes for graph design
+library(ggthemes)
+
+#Rhe dpylr package helps with verbs for data manipulation
+library(dplyr)
+
+#contains formatting for dollar values on graphs
+library(scales)
+```
+
+#Load data
+```{r}
+om <- read.csv("mtp_off_mate.csv")
+```
+
+# Base EDA Step 1: Uni-variate Non-graphical EDA
+
+```{r}
+#View the data
+head(om)
+```
+
+**Comments**
+
++ There is a lot of factor data here
+
+    -not wise to overcrowd analysis with factor variables with 5+ levels
+    -may have to look into splitting up/ranking data for better analysis
+
++ Data appears tidy and very normal
+
++ Number of observations is relatively small
+
+    - Will be interesting to see if this has an effect on skewness, ability to make conclusions
+
+**Questions**
+
++ Will some of these factors serve use better as quantitative variables? 
+
+    -In order to get different set of infromation out of them. 
+    -Zipcode would be one such variable. 
+
+```{r}
+#Check the structure of the data
+
+str(om)
+```
+**Comments**
+
++ Consistent with above, factor variables have a lot of levels
+
+    - Each order id, for example, is unique
+    - Uniqueness of each observation is what informs the factor levels
+
++ Orders very neatly organized: Segment, then category, then sub category
+
++ Few quantitative variables to work with
+
++ No errors to be found
+
+**Questions**
++ Which factor variables will contribute most to analysis?
+
+    -will it be purchase type or region, for example\
+
+```{r}
+summary(om)
+```
+
+**Comments** 
++ Many categorical variables, will be able to look into very specific relationships between variables. 
+    
+    - Correlation between variables will be a good thing to look into
+
++ Quantitative variables: 
+
+    -Revenue: extrememly right skewed. Mean is larger than median 
+    -Quantity: fairly normally distributed, even with a large maximum
+    -Discount: Median is slightly higher than the mean, so fairly left skewed
+    -Profit: Also right skewed. Mean is larger than median. 
+
++ Median will be a less bias measure during the EDA
+
+
+# Base EDA step 2: Univariate Graphical EDA
+
++ First we have to convert certian varaibles to factors. 
+
+```{r echo = FALSE}
+
+#Convert Postal Code to factor variable. All other categorical variables are already factors. 
+om$Postal.Code <- as.factor(om$Postal.Code)
+
+head(om)
+
+```
+
+
+## Step 2.1: Categorical/Factor Variables (part 1)
+
++ Will show first 4 categorical variables together
+
+```{r}
+grid.arrange(
+
+# Order ID
+ggplot(data = om, mapping = aes(x = Order.ID)) +
+  geom_bar(),
+
+# Order Date 
+ggplot(data = om, mapping = aes(x = Order.Date)) +
+  geom_bar(),
+
+# Ship Date
+ggplot(data = om, mapping = aes(x = Ship.Date)) +
+  geom_bar(),
+
+#Ship. Mode 
+ggplot(data = om, mapping = aes(x = Ship.Mode)) +
+  geom_bar(),
+
+ncol = 2
+)
+```
+
+**Comments**
+
++ Order.ID, Order.Date and Ship.Date are fairly dense
+
+    - Will using these in analysis be worthwhile?
+  
++ Ship.mode sees the highest count for Standard Class, 
+
+    -beats the second highest -Second Class- by nearly 4000
+
+## Step 2.1 con't: Categorical/Factor Variables (part 2)
+
+```{r}
+grid.arrange(
+
+# Customeer ID 
+ggplot(data = om, mapping = aes(x = Customer.ID)) +
+  geom_bar(),
+
+# City
+ggplot(data = om, mapping = aes(x = City)) +
+  geom_bar(),
+
+# State
+ggplot(data = om, mapping = aes(x = State)) +
+  geom_bar(),
+
+#Postal Code 
+ggplot(data = om, mapping = aes(x = Postal.Code)) +
+  geom_bar(),
+
+#Region
+ggplot(data = om, mapping = aes(x = Region)) +
+  geom_bar(),
+
+ncol = 2
+)
+```
+
+**Comments**
+
++ Customer ID seems to follow a regular pattern
+
++ City appears to have a few dominant levels
+
++ State, like city, appears to have some dominant levels
+
++ Postal code works in tandem with city, and state, therefore no surprise to see dominant levels
+
++ Regions are fairly equal in count
+
+    -The range between highest(W) and lowest (S) is only about 2000
+    
+**Questions**
+
++ Are these states/cities the highest contributers to profit and revenue?
+
+    -Do these locations buy more, or are they just exposed to a lot of discounts?
+
++ What are differences in products being sold by region that contributes to a high or low count?
+
+    -Is the South a region we need to focus our marketing efforts?
+
+
+## Step 2.1 con't: Categorical/Factor Variables (part 3)
+
+```{r}
+
+grid.arrange(
+
+# Product.ID
+ggplot(data = om, mapping = aes(x = Product.ID)) +
+  geom_bar(),
+
+# Product.Name
+ggplot(data = om, mapping = aes(x = Product.Name)) +
+  geom_bar(),
+
+# Segment
+ggplot(data = om, mapping = aes(x = Segment)) +
+  geom_bar(),
+
+# Category
+ggplot(data = om, mapping = aes(x = Category)) +
+  geom_bar(),
+
+# Sub.Category
+ggplot(data = om, mapping = aes(x = Sub.Category)) +
+  geom_bar(),
+
+ncol = 2
+)
+
+```
+
+**Comments**
+
++ There are a few products that far outperform the others
+  
++ We see the most sales in the Consumer segment
+
+    -outperforms the second highest, corporate, by a little over 2000
+
++ We see the most sales of Office supplies
+
+    -outperforms the second highest, furniture, by nearly 4000
+
++ Sub category fluctuates
+
+    -would be interesting to take a closer look at which segments these subcategories belong to
+
+## Step 2.2 Quantitative Variables
+
+###Revenue
+```{r}
+#Use grid.arrange to put two different graphs together
+grid.arrange(
+  
+#Create histogram
+ggplot(data = om, mapping = aes(x = Revenue)) + 
+    geom_histogram(),
+
+#Add boxplot
+ggplot(data = om, mapping = aes(x = 1)) + 
+    geom_boxplot(mapping = aes(y = Revenue)) +
+    coord_flip(), #Use to have same x-axis on both graphs
+
+#Set number of columns in grid.arrange
+ncol = 1 
+)
+```
+
+**Comments**
+
++ Revenue is fairly clustered
+
++ A few outliers for revenue expands the boxplot graph
+
+### Quantity
+```{r}
+# Use grid.arrange to put two different graphs together
+grid.arrange(
+
+#Create histogram
+ggplot(data = om, mapping = aes(x = Quantity)) + 
+    geom_histogram(),
+
+#Add boxplot
+ggplot(data = om, mapping = aes(x = 1)) + 
+    geom_boxplot(mapping = aes(y = Quantity)) +
+    coord_flip(), #use to have same x-axis on both graphs
+
+#Set number of columns in grid.arrange
+ncol = 1 
+)
+```
+
+**Comments**
+
++ Quantity is very left-skewed
+
+    -The mean is lower than the median
+
++ There are very few observations with a quantity greater than 10
+
+### Discount
+```{r}
+# Use grid.arrange to put two different graphs together
+grid.arrange(
+  
+#Create histogram
+ggplot(data = om, mapping = aes(x = Discount)) + 
+    geom_histogram(),
+
+#Add boxplot
+ggplot(data = om, mapping = aes(x = 1)) + 
+    geom_boxplot(mapping = aes(y = Discount)) +
+    coord_flip(), #use to have same x-axis on both graphs
+
+#Set number of columns in grid.arrange
+ncol = 1 
+)
+```
+
+**Comments**
+
++ Discount is left-skewed
+
+    -The mean is smaller than the median
+
++ A few outliers
+
++ We notice a big drop-off in discounts after 0.2
+
+**Questions**
+
++ How does this observation of discount dropping off at 0.2 contribute to overall analysis of profitability?
+    
+### Profit
+
+```{r}
+# Use grid.arrange to put two different graphs together
+grid.arrange(
+  
+#Create histogram
+ggplot(data = om, mapping = aes(x = Profit)) + 
+    geom_histogram(),
+
+#Add boxplot
+ggplot(data = om, mapping = aes(x = 1)) + 
+    geom_boxplot(mapping = aes(y = Profit)) +
+    coord_flip(), #use to have same x-axis on both graphs
+
+#Set number of columns in grid.arrange
+ncol = 1 
+)
+```
+
+*Comments*
+
++ Profit is normally distributed
+
++ Centered around 0
+
++ A little higher on the postive side of 0 than the negative side, which is good
+
+
+# Base EDA Step 3: Multi-variate Non-graphical
+
+## Categorical
+
++ Two-way contingency table: Region and Ship.Mode
+
+```{r}
+#Examine relationship between Region and Ship mode with a contingency table.
+om %>% 
+  tabyl(Region, Ship.Mode) %>% # creates table of counts
+  adorn_totals(where = c("row", "col")) # Total margins
+```
+*Comments*
+
++ Second class ship mode had the most ocurrances. 
+
+    -Most likely second class is the most affordable option. 
+    - Same Day has the least occurrance and may be the most expensive option. 
+   
++ West regions saw the most orders of everything.
+
+    -Confirms what was seen in graphical EDA
+   
+**Questions** 
+
++ Can we look at Price and Ship.Mode to conclude for sure which ship modes are the most expensive/inexpensive. 
+
+
+```{r}
+#proportion table for Region and Ship.Mode. 
+
+om %>% 
+  tabyl(Region, Ship.Mode) %>% 
+  adorn_totals(where = c("row", "col")) %>% 
+  adorn_percentages(denominator = "all") %>% # creates proportions
+  adorn_rounding(2) # round decimals
+
+
+```
+
+*Comments*
+
++ West regions makes up the largest proportion of shipments. 
+
+    -nearly double the amount when compared to the south region.
+
++ Eastern region has the second largest proportion of shipments. 
+
++ Standard Clas shipments is the most popular ship mode. 
+
+    -60% of shipments are standard class 
+    -The next most popular sip mode only makes up for 19 % of shipments. 
+    -The least popular ship mode seems to be Same day at 5% (likely due to price). 
+
+```{r}
+#Now we look at the relationsHIp between segment and category:
+
+#Proportion contingency/cross table for segment and category 
+om %>% 
+  tabyl(Segment, Category) %>% 
+  adorn_totals(where = c("row", "col")) %>% 
+  adorn_percentages(denominator = "all") %>% # creates proportions
+  adorn_rounding(2) # round decimals
+
+
+```
+
+*Comments* 
+
++ The consumer segment makes up about 50% or half of entire orders. 
+  
+    -Consumers are obviously the largest contributer to sales.  
+
++ 60% of orders are office supplies. 
+  
+    -Rhis makes sense as this is data from Office Max. 
+    
+**Questions**
+
++ How does this finding fit into the categorical analysis found in Step 2?
+
+    -How can we use these data together to inform pricing/marketing strategy
+  
+
+```{r}
+# lets look at Region, ship.mode, and segment together:
+
+#Proportion tables
+om %>% 
+  tabyl(Region, Ship.Mode, Segment) %>% 
+  adorn_totals(where = c("row", "col")) %>% 
+  adorn_percentages(denominator = "all") %>% # creates proportions
+  adorn_rounding(2) # round decimals
+
+```
+
+*Comments*
+
++ Proportion of shipments appear consistant based on Segment. 
+ 
+    -For example, Cooperate sees higher proportion  of orders 
+
++ We see that consistantly office max is most succesful with shipments coming from the Western region. 
+
+    -Derived from looking at the proption of shipments based on region in each segment
+    -Almost double southern region in some cases 
+   
+**Questions** 
+
++ Do we need to focus marketing or sales efforts in the Southern region or even in particular states, in order to increase profitability?
+
+    -Specifically which relationships, and what data manipualtion do we need to work with to reveal answers? 
+
+## Quantitative 
+
++ Now we are lookig at quantitative variables:
+
+```{r}
+om %>% 
+  select_if(is.numeric) %>% # Use to select just the numeric variables
+  cor() %>% 
+  round(3) 
+
+```
+
+*Comments*
+
++ Revenue and Profit have a strong correlation coefficient of 0.479.
+
++ Revenue and Quantity have a coefficient of 0.201. 
+
+    -Makes sense themore you sell the ore profitable you become.
+    -Especially large chains go for large number of sales to create revenue. 
+
++ Discount and profit have a negetive correlation of -0.219. 
+
+    -This makes sense, the more they discount the less profitable  Office Max becomes. 
+  
++ Data shows consistant results to what we would expect. 
+
+    -This is a solid sign that data and results are not off. 
+
+# Base EDA Step 4: Multi-variate Graphical
+
+
+## Step 4.1: Categorical/Factor Variables
+
+```{r}
+grid.arrange(
+  
+  om %>% 
+    ggplot(data = om, mapping = aes(x = Region, fill = Segment)) +
+    geom_bar(position = "dodge"),
+  
+  om %>%
+    ggplot(data = om, mapping = aes(x = Region, fill = Category)) +
+    geom_bar(position = "dodge"),
+  
+  om %>%
+    ggplot(data = om, mapping = aes(x = Region, fill = Ship.Mode)) +
+    geom_bar(position = "dodge"),
+  
+  ncol = 1
+
+)
+```
+
+*Comments*
+
++ This graph is consistent with what we've seen in the EDA thus far
+
+    -The South is consistently underperforming
+    
++ The consumer segment has the most counts for each region
+
++ The office supplies category has the most counts for each region
+
++ Standard class has the most counts for each region
+
+**Questions**
+
++ Does underperformance in the South 
+
+```{r}
+#more detail on region and segment
+grid.arrange(
+  
+om %>% 
+  ggplot(mapping = aes(x = Region, fill = Segment)) + 
+  geom_bar(position = "dodge") +
+  coord_flip(),
+
+om %>% 
+  ggplot(mapping = aes(x = Region, fill = Segment)) +
+  geom_bar(position = "fill") +
+  coord_flip(),
+
+ncol = 1
+)
+
+```
+
+*Comments*
+
++ West, South, East and Central all have similar segment distributions.
+
+**Questions**
+
++ What contributes to poor performance in the South?
+
+    -Is poor performance due to lack of discount, product availability, for example?
+
+
+```{r}
+#Note we have to calculate count and provide a variable for filling the tile graph
+
+om %>% 
+  group_by(Region, Segment) %>% 
+  summarise(count = n()) %>% 
+  ggplot(aes(Region, Segment)) +
+  geom_tile(aes(fill = -count))
+
+
+```
+
+*Comments*
+
++ Confirms poor performance in the South relative to other regions
+
+
+## Step 4.2: Quantitative Variables
+
+```{r}
+
+om %>% 
+  ggplot(mapping = aes(x = Quantity, y = Revenue)) +
+  geom_smooth(se = FALSE)
+  
+```
+
+*Comments*
+
++ As we would expect, when quantity rises, so does Revenue
+
+```{r}
+grid.arrange(
+  
+om %>% 
+  ggplot(mapping = aes(x = Discount, y = Quantity)) +
+  geom_smooth(se = FALSE),
+
+om %>% 
+  ggplot(mapping = aes(x = Discount, y = Quantity)) +
+  geom_point(),
+
+ncol = 1
+)
+```
+
+*Comments*
+
++ As the Discount increases, the Quantity per order increases
+
+    -Discount is more likely to inform Quantity
+    
+**Questions**
+
++ How does this translate to Quantity/Count in poor-performing regions?
+
++ Is Discount effective up until a certain point in increasing orders?
+
+    -Is there a limit to where a discount will no longer be effective.
+
+```{r}
+grid.arrange(
+  
+om %>% 
+  ggplot(mapping = aes(x = Quantity, y = Profit)) +
+  geom_smooth(se = FALSE),
+
+om %>% 
+  ggplot(mapping = aes(x = Quantity, y = Profit)) +
+  geom_point(),
+
+ncol = 1
+)
+
+
+
+```
+
+*Comments*
+
++ In general, no matter what the quantity is, the amount of profit remains about the same
+
+    -Revenues are informed by amount of orders rather than profit margins
+    
+```{r}
+#Discount and revenue
+grid.arrange(
+  
+om %>% 
+  ggplot(mapping = aes(x = Discount, y = Revenue)) +
+  geom_smooth(se = FALSE),
+
+om %>% 
+  ggplot(mapping = aes(x = Discount, y = Revenue)) +
+  geom_point(),
+
+ncol = 1
+)
+
+```
+
+*Comments*
+
++ We see that discount is beneficial for Office Max up until a certain point
+
+    -Around 0.5, discounts start to hinder OM rather than help OM.
+
+```{r}
+#Discount and Profit
+grid.arrange(
+  
+om %>% 
+  ggplot(mapping = aes(x = Discount, y = Profit)) +
+  geom_smooth(se = FALSE),
+
+om %>% 
+  ggplot(mapping = aes(x = Discount, y = Profit)) +
+  geom_point(),
+
+ncol = 1
+)
+```
+
+*Comments*
+
++ Works in tandem with Revenue graph
+
++ Only up to a certain point will discounts contribute to an increase in profit for OM
+
+## Step 4.3: Categorical and Quantitative Variables
+
+```{r}
+  # Region, Revenue, Segment
+  om%>% 
+    ggplot(mapping = aes(x = Discount, y = Profit, color = Segment)) +
+      geom_point() +
+  geom_smooth(se = FALSE)
+```
+
+*Comments*
+
++ All segments seem to follow the same trend
+
+    -As discount increases, contribution to profit decreases
+    
++ We will investigate this further in our statistical eda
+
+```{r}
+#Discount, Profit, Region
+
+  om %>% 
+    ggplot(mapping = aes(x = Discount, y = Profit, color = Region)) +
+      geom_point() +
+      geom_smooth(method = "lm", se = FALSE)
+```
+
+*Comments*
+
++ For each region, as discount increases, profit decreases
+
++ Works in tandem with the above graph, filled by Segment
+
+```{r}
+#Discount, Revenue, Region
+
+  om %>% 
+    ggplot(mapping = aes(x = Discount, y = Revenue, color = Region)) +
+      geom_point() +
+      geom_smooth(method = "lm", se = FALSE)
+```
+
+*Comments*
+
++ For each region, as discount increases, contribution to revenue decreases
+
++ Follows the same trend we've seen thus far
+
+```{r}
+# Show code
+
+grid.arrange(
+  
+  om %>% 
+    ggplot(mapping = aes(x = Region, y = Revenue)) +
+      geom_boxplot(),
+
+  om %>% 
+    ggplot(mapping = aes(x = Region, y = Profit)) +
+      geom_boxplot(),
+  
+ncol = 1
+)
+```
+
+*Comments*
+
++ This graph shows that the Revenue and Profit patterns are consistent by region
+
+    -Regardless of count/number of sales, all the regions observe similar trends
+
+
+```{r}
+cities_botm_10 <- om %>%
+                group_by(City) %>%
+                summarise(total_rev = sum(Revenue)) %>%
+                top_n(10, -total_rev) %>% 
+                ggplot(mapping = aes(x = reorder(City, -total_rev), y = total_rev, fill = total_rev)) + 
+                coord_flip() + geom_bar(stat = "identity")
+
+  
+cities_botm_10
+```
+
+*Comments*
+
++ These are the cities that see the lowest amount of revenue
+
+    - A lot of these cities are in the South
+
++ While this is nice to know, it's too specific to pursue in detailed EDA
+
+
+```{r}
+states_top_10 <- om %>%
+                group_by(State) %>%
+                summarise(total_rev = sum(Revenue)) %>%
+                top_n(10, total_rev) %>% 
+                ggplot(mapping = aes(x = reorder(State, total_rev), y = total_rev/1000, fill -total_rev)) + 
+                coord_flip() +
+                geom_bar(stat = "identity")
+
+  
+states_top_10
+```
+
+*Comments*
+
++ This graph confirms what was discovered before in the EDA by region
+
++ This information is nice to know, but not worth pursuing in detailed EDA
+
+
+```{r}
+#Most profitable states and least profitable states
+states_top_profit <- om %>%
+                group_by(State) %>%
+                summarise(total_profit = sum(Profit)) %>%
+                top_n(10, total_profit) %>% 
+                ggplot(mapping = aes(x = reorder(State, total_profit), y = total_profit, fill = -total_profit)) +                    ggtitle("Highest Performing States") +
+                coord_flip() + 
+                geom_bar(stat = "identity")
+  
+states_top_profit
+
+states_lowest_profit <- om %>%
+                group_by(State) %>%
+                summarise(total_profit = sum(Profit)) %>%
+                top_n(10, -total_profit) %>% 
+                ggplot(mapping = aes(x = reorder(State, total_profit), y = total_profit, fill = -total_profit)) +               
+                ggtitle(" Lowest Performing States") +
+                coord_flip() + 
+                geom_bar(stat = "identity")  
+  
+states_lowest_profit
+
+
+
+```
+
+*Comments*
+
++ When paired with the graph before, it's interersting to see that Texas brings in the third most revenue, but suffers huge profit loss
+
++ None of the higest performing states are in the south
+
+# Detailed EDA
+
+How does discount in each category affect profit?
+
+```{r}
+
+om %>%
+  ggplot(mapping = aes(x = Region, y = Revenue, fill = Segment)) +
+  geom_bar(stat = "identity", position = "dodge")
+
+```
+
+*Comments*
+
++ Consistent with earlier findings, Central and South seeem to have high revenue than the other states.
+
++ The South has high home-office sales compared to others
+
+    -Almost disproportionately large
+
+**Questions**
+
++ Why do the Central and South regions have such high revenues?
+
+    -We need to look at discount.
+
+
+```{r}
+#Density of price
+om %>% 
+  ggplot(mapping= aes(x = Region, fill = Segment)) +
+  geom_density(alpha = 0.5) 
+
+om %>%  
+  ggplot(mapping = aes(x = Region, y = Profit/100, fill = Segment)) +
+  geom_boxplot()
+
+#average price
+om %>% 
+     group_by(Region, Segment) %>% 
+     summarize(mean_profit_000 = mean(Profit)/1000) %>% 
+     ggplot(mapping = aes(x = Region, y = mean_profit_000, fill = Segment)) +
+     geom_bar(stat = "identity", position = "dodge")
+
+#Average price comparison
+```
+*Comments*
+
++ Density 
+
+
+
+
+```{r}
+# look at most profitable state and which segments profits come from. 
+
+ om %>%
+  group_by(State, Segment) %>%
+  summarise(total_profit = sum(Profit)) %>%
+  top_n(10, -total_profit) %>% 
+  ggplot(mapping = aes(x = reorder(State, total_profit), y = total_profit, fill = Segment)) + 
+  coord_flip() + 
+  geom_bar(stat = "identity")
+```
+
+*Comments*
+
++ A majority of the states contributing to negative profit are in the South and Central regions
+
+
+```{r}
+
+#let's look at why certain states are making more, less, or no profit at all based on how much dicount they give. 
+
+ om %>%
+  group_by(State, Segment) %>%
+  top_n(10, Discount) %>% 
+  ggplot(mapping = aes(x = reorder(State, Discount), y = Discount, fill = Segment)) + 
+  coord_flip() + 
+  geom_bar(stat = "identity")
+```
+
+*Comments*
+
++ The states employing high discount values are in the South and Central regions
+
+```{r}
+#Mean discount by region
+ om %>%
+  group_by(Region, Segment) %>%
+  summarise(mean_discount = mean(Discount)) %>% #create mean discount level for graph
+  top_n(10, mean_discount) %>% 
+  ggplot(mapping = aes(x = reorder(Region, mean_discount), y = mean_discount, fill = Segment)) + #reorder to go in descending order
+  coord_flip() + 
+  geom_bar(stat = "identity", position = "dodge")
+```
+
+*Comments*
+
++ Like we observed earlier, central and south region have the highest mean discount levels.
+
+**Questions**
+
++ Why are they undeperforming if discounts are being employed? Shouldn't that generate more traffic=?
+
+
+```{r}
+om %>% 
+  ggplot(mapping = aes(x = Discount, y = Revenue)) +
+  geom_point(mapping = aes(color = Category))
+```
+
+*Comments*
+
++ We see that as discount increases per category, revenue decreases
+
+**Questions**
+
++ Could this explain why the South and Central regions are not as profitable as the others?
+
+## Statistical EDA 
+
++ We will invesitgate further the trends between discount and profits in given circumstances.
+
+```{r}
+# lets look at of  dicount afffect profits
+
+om <- om %>% 
+  mutate(Disc = ifelse(Discount > 0, 1, 0))
+
+t.test(om$Profit[om$Disc == 1], om$Profit[om$Disc == 0])
+```
+
+*Comments*
+
++ The mean profit when a discount occurs is significantly different than the mean profit of 66.90 when no discount occurs. 
+
++ Very samll p-value also confirms that there is a statistically significant(reliable) difference between profits when there is a discount or no discount present at the time of order. 
+
+**Questions** 
+
++ Is there a significant difference in profit at different levels of discount? 
+
+```{r}
+#Look at dicount and profit  
+
+pairwise.t.test(om$Profit, as.factor(om$Discount))
+
+z <- qnorm(0.975)
+om %>% 
+  group_by(Discount) %>%
+  summarise(mean_prof = mean(Profit), sd = sd(Profit), n = n(), ci = z * sd/sqrt(n)) %>%
+  ggplot(mapping = aes(x = Discount, y = mean_prof)) + 
+  geom_bar(stat = "identity") + 
+  geom_errorbar(aes(ymin =mean_prof - ci, ymax =mean_prof + ci),
+                width = 0.1)
+```
+
+*Comments*
++ In the table we see that column three of profit that there is a statistically significant difference between profit levels at a 20 percent discount and a 30 percent discount.  
+
+    -We see that the p value in column 2 of about 0.000016 which is very small. Very statistically significant.
+    -This means we reject the nul hypothesis that thre is no difference in mean profits depending on percentage discounted. 
+
++ The bar chart does the same visually, we see that the error bars the difference between profitability between a 20 percent dicount and 30 percent discount is both statistically significant as well as practically different. 
+
+    -The error bars do not over lap as well as the bars show profits going from postive profits to negetive profit levels 
+    
++ There seems to be a sweet spot where we saw earlier that dicout ussually increase revenue but not alwasy profits. Here it shows that potentially Omcan discount up to 20 percent to icnrease revenues without suffering from significant profit loss.
+
+```{r}
+#revenue and discount pairwise t test
+
+pairwise.t.test(om$Revenue, om$Discount)
+
+m <- qnorm(0.975)
+om %>% 
+  group_by(Discount) %>%
+  summarise(mean_rev = mean(Revenue), sd = sd(Revenue), n = n(), ci = z * sd/sqrt(n)) %>%
+  ggplot(mapping = aes(x = Discount, y = mean_rev)) + 
+  geom_bar(stat = "identity") + 
+  geom_errorbar(aes(ymin =mean_rev - ci, ymax =mean_rev + ci),
+                width = 0.2)
+```
+*Comments* 
+
++ In the table we see that a  50% discount compared to a 60, 70, 0r 80% dicount was significantly different in resulting revenue levels. At the 50% discout levels of revenue are increasing, hwoever after this threshold revenues drops significantly. We see this thorugh th every low p values in the table surroudn the 50% discount level. 
+
+  - We see that the p value are very small.
+  
+  - We reject the null hypothesis that there is no statisitally significant difference in revenue levels at these different discount levels.  
+  
++ the bar chart shows the same visually.
+
+   - we see that the error bare do not overlap at all betweeen the 0.5 dicount level bar and the 0.6 level bar right after it. This shows statitical significanc as well as practically different as th eelvelof revenues differ a good amount. This is the strenght of visual.
+
+# Summary
+
+1. The lowest performing regions are South and Central. We looked at their levels of discount to find the reason for this.
+
+2. High discounts looked appealing when looking at revenues only.
+
+  -The South and Central regions did not appear to be underperforming when only looking at revenue, which is very misleading.
+
+3. Upon analysis of the profit, we found that higher discounts contributed to higher profit losses.
+
+# Professional Formatting for Memo
+
+## Detailed bar graph: Discount, Region and Segment
+
+```{r}
+ mean_discount <- om %>%
+  group_by(Region, Segment) %>%
+  summarise(mean_discount = mean(Discount)) %>%
+  top_n(10, mean_discount) %>% 
+  ggplot(mapping = aes(x = reorder(Region, mean_discount), y = mean_discount, fill = Segment)) + 
+  coord_flip() + 
+  geom_bar(stat = "identity", position = "dodge") +
+  theme_classic() +
+  ggtitle("Mean Discount is highest for the Central and Southern Regions",
+          subtitle = "These regions were also the lowest performers for mean profit.") +
+  labs(x = "", y = "Average Discount", fill = "") +
+  scale_fill_discrete_sequential(palette = "RedOr")
+
+mean_discount
+
+```
+
+## Detailed Bar Graph: Profit, Region and Segment
+
+```{r}
+mean_profit<- om %>% 
+     group_by(Region, Segment) %>% 
+     summarize(mean_profit_000 = mean(Profit)) %>% 
+     ggplot(mapping = aes(x = reorder(Region, mean_profit_000), y = mean_profit_000, fill = Segment)) +
+     geom_bar(stat = "identity", position = "dodge") +
+  ggtitle("Profit is the lowest for the Central and Southern Regions",
+          subtitle = "These regions saw the highest amount of discounts") +
+  coord_flip() +
+  theme_classic() +
+  labs(x = "", y = "Average Profit", fill = "") +
+  scale_y_continuous(label = dollar_format()) + 
+  scale_fill_discrete_sequential(palette = "RedOr")
+
+mean_profit
+```
+
+## Detailed Line Graph: Discount, Revenue and Region
+
+```{r}
+revenue_discount <- om %>% 
+  group_by(Discount, Region) %>% 
+  summarise(mean_revenue = mean(Revenue)) %>% 
+  ggplot(mapping = aes(x = Discount, y = mean_revenue, color = Region)) +
+  geom_smooth(se = FALSE) +
+  theme_classic() +
+  ggtitle("The South's high discounts influence high revenues",
+          subtitle = "This is a double-edged sword when paired with profit data") +
+  labs(x = "", y = "", color = "") +
+  scale_y_continuous(label = dollar_format()) +
+  scale_color_discrete_sequential(palette = "RedOr") 
+
+revenue_discount
+              
+```
+
+# Preparing for export
+
+```{r}
+ggsave(filename = "mean_discount.png", plot = mean_discount)
+ggsave(filename = "mean_profit.png", plot = mean_profit)
+ggsave(filename = "revenue_discount.png", plot = revenue_discount)
+```
+
+
+   
+
+
+
+
+
+
