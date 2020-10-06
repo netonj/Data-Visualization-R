@@ -1,0 +1,89 @@
+---
+title: "Neton, Yoo: Midterm Memo"
+author: "Jack Neton, Kyle Yoo"
+date: "5/13/2020"
+output: html_document
+---
+#### **To: Dr.Green**  
+  
+#### **From: Jack Neton, Kyle Yoo**  
+  
+#### **Date: 5/13/2020**   
+  
+#### **RE: Office Mate Sales Analysis**  
+
+***
+
+```{r include = FALSE}
+# Course: Communicating Data
+# Purpose: Communicate business strategy based on Office Mate sales data.
+# Date: May 13,, 2020
+# Author: Kyle Yoo, Jack Neton 
+
+```
+
+
+```{r setup, include=FALSE}
+# Set chunk options for the file
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+```
+
+```{r}
+# Clear environment of variables and functions
+rm(list = ls(all = TRUE)) 
+
+# Clear environmet of packages
+if(is.null(sessionInfo()$otherPkgs) == FALSE)lapply(paste("package:", names(sessionInfo()$otherPkgs), sep=""), detach, character.only = TRUE, unload = TRUE)
+
+```
+
+```{r}
+# Load librarys
+library(tidyverse)
+
+```
+
+The goal of this project is to inform upper management at Office Mate on how to become more profitable as the company faces pressures from other online retailers. This memo will walk through our findings to inform decisions to increase profitability.
+
+The Office Mate data set contains 9994 observations of 18 variables. The types of data in this data set are Order ID, Order Date, Ship Date, Ship Mode, Customer ID, City, State, Postal Code, Region, Product ID, Product Name, Segment, Category, Sub Category, Revenue, Quantity, and Discount. The most influential variables for our analysis were Region, Segment, Category, Profit, Revenue and Discount. 
+
+We found that the South and Central Regions performed the lowest out of the other regions. 
+
+
+
+This encouraged us to take a closer look at what contributed to underpeformance at these regions. Boosting in these regions will help overall profitability of the company.
+
+Our first finding focuses on discounts and how they influence revenue and profit. It has two sides, one that affects the revenue and one that affects profits. The way it affects revenue and profit, however, is different. 
+
+
+
+After running statistical analysis, we found consistantly and reliably that the more that discounts occured, the more revenue would be brought in. This makes sense when customers see cheaper prices; they'll be encouraged to buy more, and in turn we sell more. 
+
+<br>
+![](mean_discount.png){width=500px}
+
+Flip the coin however, we find that the increase in discount consistantly and reliably resulted in noticible losses in profit. This also makes sense as the more we discount we employ, the less we make on each sale. 
+
+<br>
+![](mean_profit.png){width=500px}
+
+The key here is to find the sweet spot where we maximize efficency in both revenues and profits. We can bring in the most revenue in these underperforming southern and central regions without significantly decreasing the levels of profits. We found through statistical analysis that at discount levels up to 50%-60% there were consistant and reliable improvements in revenue. Any discount above 50-60% would result in drops in revenue. Additionally, at 50% discounts, profits would consitenatly be hurt at a noticible level. 
+
+<br>
+![](revenue_discount.png){width=500px}
+
+We found that a 20-30% discount would not be consistantly different in profit levels than if there were fewer or no discounts. However, anything above these tresholds would result in consistant losses in profits. 
+
+In conclusion, we found that up to a 20% discount could be used in order to benefit revenue. Additionally, profits would consistantly show little or no negative change. The southern and central regions that are underperforming should only use up to a 20% discount and no more in order to boost sales and revenues while still maximizing profit levels. With this advice, running a discount will be logical since it will increase revenues in these regions and not hurt our profit levels. Customers will still be encouraged to buy products with the discount, and Office Mate's profitability will not hurt from too generous of a discount. 
+
+For follow-up, we can be reached via email at:
+
+netonj@seattleu.edu
+
+yook1@seattleu.edu
+
+
+
+
+
